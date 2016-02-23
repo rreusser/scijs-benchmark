@@ -1,0 +1,20 @@
+{
+  "name": "scijs-benchmark",
+  "version": "1.0.0",
+  "description": "A very simple benchmark utility",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/*.js"
+  },
+  "author": "Ricky Reusser",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5"
+  },
+  "dependencies": {
+    "sprintf-js": "^1.0.3",
+    "table": "^3.7.8",
+    "util-extend": "^1.0.3"
+  }
+}
