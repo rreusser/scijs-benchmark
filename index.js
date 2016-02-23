@@ -12,11 +12,12 @@ function Benchmark (options) {
     minSamples: 10,
     maxSamples: Infinity,
     maxDuration: 5000,
+    discardFirst: 10,
     getTime: Date.now,
+    saveSamples: false,
     getTimeDiff: function(t1, t2) {
       return t2 - t1
     },
-    discardFirst: 20,
   }, options || {})
 
   this.minSamples = options.minSamples
@@ -25,6 +26,7 @@ function Benchmark (options) {
   this.getTime = options.getTime
   this.getTimeDiff = options.getTimeDiff
   this.discardFirst = options.discardFirst
+  this.saveSamples = options.saveSamples
 
   this.results = []
   this._queue = []
@@ -51,7 +53,7 @@ Benchmark.prototype._executeNext = function (cb) {
       var result = this._measureSynchronous(test.fn)
       result.name = test.name
       this.results.push(result)
-      return this._executeNext(cb)
+      this._executeNext(cb)
     }
   } else {
     cb && cb()
@@ -61,15 +63,13 @@ Benchmark.prototype._executeNext = function (cb) {
 }
 
 Benchmark.prototype.run = function (cb) {
-  this._executeNext(function (err, result) {
+  return this._executeNext(function (err, result) {
     if (err) {
-      cb(err)
+      cb && cb.bind(this)(err, null)
     } else {
       cb && cb.bind(this)(null, this.results)
     }
   }.bind(this))
-
-  return this
 }
 
 Benchmark.prototype.measure = function measure (name, fn) {

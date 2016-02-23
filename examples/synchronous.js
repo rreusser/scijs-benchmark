@@ -1,6 +1,8 @@
 'use strict'
 
 var Benchmark = require('../')
+var table = require('table').default
+
 new Benchmark({
     maxDuration: 200,
     getTime: process.hrtime,
@@ -22,5 +24,5 @@ new Benchmark({
     return (t2[0] - t1[0]) * 1e3 + (t2[1] - t1[1]) * 1e-6
   })
   .run(function() {
-    console.log(this.toTable())
+    console.log(table(this.toTable()))
   })

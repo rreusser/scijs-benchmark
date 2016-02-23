@@ -1,6 +1,7 @@
 'use strict'
 
 var Benchmark = require('../')
+var table = require('table').default
 
 new Benchmark({
     maxSamples: 1000,
@@ -17,5 +18,5 @@ new Benchmark({
     for (var i = 0; i < 100000; i++, Math.sin(Math.PI));
   })
   .run(function() {
-    console.log(this.toTable())
+    console.log(table(this.toTable()))
   })

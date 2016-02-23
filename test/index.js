@@ -12,8 +12,56 @@ describe('scijs-benchmark', function () {
     b.measure('test1', function () {return 1})
     b.run()
     assert.deepEqual(b.results, [
-      {name: 'test1', n: 5, mean: 1, variance: 0, stddev: 0, minimum: 1}
+      {name: 'test1', n: 5, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1}
     ])
+  })
+
+  it('.run is idempotent', function () {
+    new Benchmark({
+        maxSamples: 5,
+        minSamples: 0,
+      })
+      .measure('test1', function () {return 1})
+      .run()
+      .run()
+      .run(function(err, results) {
+        assert.deepEqual(results, [
+          {name: 'test1', n: 5, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1}
+        ])
+      })
+  })
+
+  it('saves synchronous samples', function () {
+    var c = 0
+    new Benchmark({
+        maxSamples: 5,
+        minSamples: 5,
+        discardFirst: 0,
+        saveSamples: true,
+      })
+      .measure('test1', function () {return ++c})
+      .run(function(err, results) {
+        assert.deepEqual(results[0].samples, [1, 2, 3, 4, 5])
+      })
+  })
+
+  it('saves asynchronous samples', function (done) {
+    var c = 0
+    new Benchmark({
+        maxSamples: 5,
+        minSamples: 5,
+        discardFirst: 0,
+        saveSamples: true,
+      })
+      .measure('test1', function (done) {
+        setTimeout(function () {
+          done(null, ++c)
+        }, 0)
+      })
+      .run(function(err, results) {
+        assert.deepEqual(results[0].samples, [1, 2, 3, 4, 5])
+        done()
+      })
   })
 
   it('runs two synchronous benchmarks', function () {
@@ -25,8 +73,8 @@ describe('scijs-benchmark', function () {
     b.measure('test2', function () {return 2})
     b.run()
     assert.deepEqual(b.results, [
-      {name: 'test1', n: 5, mean: 1, variance: 0, stddev: 0, minimum: 1},
-      {name: 'test2', n: 5, mean: 2, variance: 0, stddev: 0, minimum: 2},
+      {name: 'test1', n: 5, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1},
+      {name: 'test2', n: 5, mean: 2, variance: 0, stddev: 0, maximum: 2, minimum: 2},
     ])
   })
 
@@ -41,15 +89,16 @@ describe('scijs-benchmark', function () {
       })
       .run(function (err, results) {
         assert.deepEqual(results, [
-          {name: 'test1', n: n, mean: 1, variance: 0, stddev: 0, minimum: 1}
+          {name: 'test1', n: n, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1}
         ])
         done()
       })
   })
 
-  it('runs two synchronous benchmarks', function (done) {
+  it('runs two asynchronous benchmarks in series', function (done) {
     var n = 4
     new Benchmark({
+        discardFirst: 0,
         maxSamples: n,
         minSamples: 0
       })
@@ -61,14 +110,14 @@ describe('scijs-benchmark', function () {
       })
       .run(function (err, results) {
         assert.deepEqual(results, [
-          {name: 'test1', n: n, mean: 1, variance: 0, stddev: 0, minimum: 1},
-          {name: 'test2', n: n, mean: 1, variance: 0, stddev: 0, minimum: 1}
+          {name: 'test1', n: n, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1},
+          {name: 'test2', n: n, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1}
         ])
         done()
       })
   })
 
-  it('runs a synchronous and asynchronous benchmark', function (done) {
+  it('runs a synchronous and asynchronous benchmark in series', function (done) {
     var n = 4
     new Benchmark({
         maxSamples: n,
@@ -80,8 +129,8 @@ describe('scijs-benchmark', function () {
       })
       .run(function (err, results) {
         assert.deepEqual(results, [
-          {name: 'test1', n: n, mean: 1, variance: 0, stddev: 0, minimum: 1},
-          {name: 'test2', n: n, mean: 1, variance: 0, stddev: 0, minimum: 1}
+          {name: 'test1', n: n, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1},
+          {name: 'test2', n: n, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1}
         ])
         done()
       })
@@ -95,7 +144,7 @@ describe('scijs-benchmark', function () {
       })
       .run(function () {
         assert.deepEqual(this.results, [
-          {name: 'test1', n: n, mean: 1, variance: 0, stddev: 0, minimum: 1}
+          {name: 'test1', n: n, mean: 1, variance: 0, stddev: 0, maximum: 1, minimum: 1}
         ])
         done()
       })
@@ -115,7 +164,7 @@ describe('scijs-benchmark', function () {
       })
   })
 
-  it('bails out when maxDuration met', function (done) {
+  it('halts when maxDuration exceeded', function (done) {
     var b = new Benchmark({
         maxSamples: Infinity,
         maxDuration: 10
@@ -144,7 +193,7 @@ describe('scijs-benchmark', function () {
       })
       .run(function () {
         assert.deepEqual(this.results, [
-          {name: 'test1', n: 10, mean: 1, variance: 0, stddev: 0, minimum: 1}
+          {name: 'test1', n: 10, mean: 1, variance: 0, stddev: 0, minimum: 1, maximum: 1}
         ])
         done()
       })
@@ -162,7 +211,7 @@ describe('scijs-benchmark', function () {
       })
       .run(function () {
         assert.deepEqual(this.results, [
-          {name: 'test1', n: 10, mean: 1, variance: 0, stddev: 0, minimum: 1}
+          {name: 'test1', n: 10, mean: 1, variance: 0, stddev: 0, minimum: 1, maximum: 1}
         ])
         done()
       })
@@ -187,5 +236,39 @@ describe('scijs-benchmark', function () {
         assert.match(err, /Error encountered/)
         done()
       })
+  })
+
+  it('run callback is bound when ending synchronously', function () {
+    var b = new Benchmark({maxSamples: 5})
+    b.measure('test1', function () {return 1})
+    b.run(function (err, results) {
+      assert.isNull(err)
+      assert.equal(results, b.results)
+      assert.equal(this, b)
+    })
+  })
+
+  it('run callback is bound when ending asynchronously', function (done) {
+    var b = new Benchmark({maxSamples: 5})
+    b.measure('test1', function (d) {setTimeout(d)})
+    b.run(function (err, results) {
+      assert.isNull(err)
+      assert.equal(results, b.results)
+      assert.equal(this, b)
+      done()
+    })
+  })
+
+  it('run callback is bound when fails asynchronously', function (done) {
+    var b = new Benchmark({maxSamples: 5})
+    b.measure('test1', function (d) {setTimeout(function () {
+      d('error!')
+    })})
+    b.run(function (err, results) {
+      assert.equal(err, 'error!')
+      assert.isNull(results)
+      assert.equal(this, b)
+      done()
+    })
   })
 })

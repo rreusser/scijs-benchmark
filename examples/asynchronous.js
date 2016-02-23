@@ -1,6 +1,7 @@
 'use strict'
 
 var Benchmark = require('../')
+var table = require('table').default
 
 new Benchmark({
     maxDuration: 200,
@@ -18,9 +19,9 @@ new Benchmark({
     var t1 = process.hrtime()
     setTimeout(function () {
       var t2 = process.hrtime()
-      done((t2[0] - t1[0]) * 1e3 + (t2[1] - t1[1]) * 1e-6)
+      done(null, (t2[0] - t1[0]) * 1e3 + (t2[1] - t1[1]) * 1e-6)
     }, 100)
   })
-  .run(function() {
-    console.log(this.toTable())
+  .run(function(err, results) {
+    console.log(table(this.toTable()))
   })

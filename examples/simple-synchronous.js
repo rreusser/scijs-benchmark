@@ -1,6 +1,7 @@
 'use strict'
 
 var Benchmark = require('../')
+var table = require('table').default
 
 new Benchmark({
     maxSamples: 1000,
@@ -14,5 +15,5 @@ new Benchmark({
   })
   .run(function(err, results) {
     console.log(results)
-    console.log(this.toTable())
+    console.log(table(this.toTable()))
   })

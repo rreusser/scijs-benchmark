@@ -4,28 +4,39 @@
 
 ## Introduction
 
-This utility provides a simple, few-frills benchmark tool. It performs synchronous or asynchronous tests and allows for either manual or built-in timing. It computes the online mean and variance and returns very simple statistics.
+This module implements a simple, very-few-frills benchmark tool. It performs synchronous or asynchronous tests and allows for either manual or built-in timing. It computes the online mean and variance and returns some simple statistics. Its philosophy is that it coordinates the sampling and sequencing but otherwise tries to add as little as possible.
+
+## Installation
+
+```bash
+npm install scijs-benchmark
+```
+
+```javascript
+var Benchmark = require('scijs-benchmark')
+```
 
 ## Examples
 ### Basic example
 
-A simple synchronous test looks like this:
+The example below shows a simple benchmark containing two synchronous tests. The results are outputted as a two-element array containing the results in the order they were added.
 
 ```javascript
-var Benchmark = require('scijs-benchmark')
-
-var bench = new Benchmark({maxDuration: 200})
-
-bench.measure('Cosine x 100000', function () {
-  for (var i = 0; i < 100000; i++, Math.cos(Math.PI));
-})
-bench.measure('Sine x 100000', function () {
-  for (var i = 0; i < 100000; i++, Math.sin(Math.PI));
-})
-
-bench.run(function(err, results) {
-  console.log(results)
-})
+new Benchmark({
+    discardFirst: 10
+    maxDuration: 200
+    minSamples: 10
+    maxSamples: 100,
+  })
+  .measure('cos(pi) x 100000', function () {
+    for (var i = 0; i < 100000; i++, Math.cos(Math.PI));
+  })
+  .measure('sin(pi) x 100000', function () {
+    for (var i = 0; i < 100000; i++, Math.sin(Math.PI));
+  })
+  .run(function(err, results) {
+    console.log(results)
+  })
 
 // Prints:
 //  [ { n: 39,
@@ -44,10 +55,13 @@ bench.run(function(err, results) {
 
 ### Table Output
 
-For convenience, the results may be outputted as a table:
+For convenience, the results may be converted to a tabular array with headings. From there it's a one-liner to use a module like [table]() to pretty print them.
 
 ```javascript
-console.log(bench.toTable())
+var table = require('table').default
+
+console.log(table(bench.toTable()))
+
 // ╔═════════════════╤═════════╤══════════════╤═══════════╤═════════════════════════╗
 // ║ Test            │ Samples │ Minimum (ms) │ Mean (ms) │ Standard Deviation (ms) ║
 // ╟─────────────────┼─────────┼──────────────┼───────────┼─────────────────────────╢
@@ -57,11 +71,11 @@ console.log(bench.toTable())
 // ╚═════════════════╧═════════╧══════════════╧═══════════╧═════════════════════════╝
 ```
 
-### Custom timing function
+### Automatic timing
 
-The minimum for both tests reflects the (lack of) precision of `Date.now`. To use a high resolution timer,
-you may specify a method for querying the time and computing the difference. For example, to use
-`process.hrtime` to compute the time in milliseconds,
+The numerically identical minima in the test above reflect the (lack of) precision of `Date.now`.
+To use a high resolution timer, you may specify a method for querying the time and computing the
+difference. For example, to use `process.hrtime` to compute the time in milliseconds,
 
 ```javascript
 var bench = new Benchmark({
@@ -85,14 +99,18 @@ var bench = new Benchmark({
 
 ### Manual timing
 
-If your task has custom setup and teardown procedures, you may override built-in timing with your own by returning the measured time:
+If your task has custom setup and teardown procedures, you may override built-in timing by simply measuring and returning the time yourself:
 
 ```javascript
 bench.measure('A complicated test', function () {
-  // Complicated setup here
-  var t1 = Date.now()
-  // Complicated work
-  var t2 = Date.now()
+  var t1, t2
+
+  // Setup
+
+  t1 = Date.now()
+  // Work to be measured
+  t2 = Date.now()
+
   // Teardown
 
   return t2 - t1
@@ -101,9 +119,13 @@ bench.measure('A complicated test', function () {
 
 ### Asynchronous benchmarks
 
-If the function provided to `measure` takes an argument, it will be interepreted as an asynchronous test. To complete the test, you must execute the callback with errors as the first argument and, optionally, the measured time elapsed as the second.
+If the function provided to `measure` takes an argument, it is interepreted as an asynchronous test. To complete the test, you must execute the callback with errors as the first argument and, optionally, the measured time elapsed as the second.
 
 ```javascript
+bench.measure('Async test with automatic timing', function (done) {
+  myAsyncWork(done)
+})
+
 bench.measure('Async test with manual timing', function (done) {
   var t1 = Date.now()
   myAsyncWork(function () {
@@ -112,23 +134,9 @@ bench.measure('Async test with manual timing', function (done) {
     done(null, t2 - t1)
   })
 })
-bench.measure('Async test with automatic timing', function (done) {
-  myAsyncWork(done)
-})
 ```
 
-**NB: If using the asynchronous form, the callback must actually be called asynchronously (via `process.nextTick`, `setImmediate`, `setTimeout` or similar, otherwise a stack overflow may result.**
-
-
-## Installation
-
-```bash
-npm install scijs-benchmark
-```
-
-```javascript
-var Benchmark = require('scijs-benchmark')
-```
+**NB: If using the asynchronous form, the callback must actually be asynchronous (via `process.nextTick`, `setImmediate`, `setTimeout` or similar), otherwise a stack overflow may result.**
 
 
 ## Usage
@@ -136,25 +144,30 @@ var Benchmark = require('scijs-benchmark')
 ### `Benchmark([options])`
 Constructor for a set of benchmarks
 
-**Arguments**
+#### Arguments
 - `options`: an object containing options as keys. Options are:
-  - **`minSamples : Number`**: Integer representing the minimum number of samples to be acquired. (Overrules maxDuration)
-  - **`maxSamples : Number`**: Integer representing the maximum number of samples to be acquired
-  - **`maxDuration : Number`**: Number representing the maximum number of milliseconds for which to acquire samples. (Does not stop single samples already in progress.)
-  - **`discardFirst : Number`**: Integer representing the number of initial samples to be thrown away. (Useful for ensuring the optimized function is being tested.)
-  - **`getTime : function()`**: Callback that returns the current time. Used internally in case the elapsed time is not computed and returned manually. Set by default to `Date.now`.
-  - **`getTimeDiff : function(t1, t2)`**: Callback executed internally to compute the difference between the start and end times of a sample. Only invoked if the elapsed time is not computed and returned manually. By default, `function(t1, t2) { return t2 - t1 }`.
 
+| Variable | Type | Default | Description |
+| -------- | ---- | ------- | ----------- |
+| `minSamples` | `Number` | 10 | Minimum number of samples to be acquired. (Overrules maxDuration) |
+| `maxSamples` | `Number` | Infinity | Maximum number of samples to be acquired |
+| `maxDuration`| `Number` | 5000 | Maximum number of milliseconds for which to acquire samples. (Does not stop single samples already in progress.) |
+| `discardFirst` | `Number` | 10 | Number of initial samples to be thrown away. |
+| `getTime` | `function()` | `Date.now` | Callback that returns the current time. Used internally in case the elapsed time is not computed and returned manually. Set by default to `Date.now`. |
+| `getTimeDiff` | `function(t1, t2)`| `function(t1, t2) { return t2 - t1 }` | Callback executed internally to compute the difference between the start and end times of a sample. Only invoked if the elapsed time is not computed and returned manually. By default, `function(t1, t2) { return t2 - t1 }`. |
+| `saveSamples` | `Boolean` | false | Save all samples to an `Array`. (Best used with `maxSamples`. This may get very large!) |
 
 #### Methods
-The constructed `Benchmark` contains the following methods:
+The constructed `Benchmark` contains the following chainable methods:
 
-##### `.measure(name, fn)`
-Register a function to be tested. If `fn` takes no arguments and returns `undefined`, timing will be performed automatically. I
+#### `.measure(name, fn)`
+Register a function to be tested. `name` is an arbitrary label. If `fn` takes no arguments, it is interpreted as a synchronous test. If a synchronous test returns anything but `undefined`, the return value is interpreted as a `Number` representing the elapsed time and overrides built-in timing. If `fn` takes arguments, it is passed a callback and interpreted as an asynchronous test. On completion, this callback must be executed with `([err[, timeElapsed]])` as its arguments. The presence of `err` will halt the test. `timeElapsed`, if provided, will override built-in timing.
 
-##### `.run([onComplete])`
+#### `.run([onComplete])`
+Run all tests in series. Optional callback `onComplete` is bound to instance and executed on completion of all tests with arguments `(err, results)`. `results` is an `Array` containing the results of all tests in the order they were added.
 
-
+#### `.toTable()`
+Convert the results to an `Array` of `Array`s of nicely formatted strings. Useful for pretty-printing the results but does not itself generate a string or print to screen.
 
 ## License
 &copy; 2016 Ricky Reusser. MIT License.
