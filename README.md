@@ -4,7 +4,7 @@
 
 ## Introduction
 
-This module implements a simple, very-few-frills benchmark tool. It performs synchronous or asynchronous tests and allows for either manual or built-in timing. It computes the online mean and variance and returns some simple statistics. Its philosophy is that it coordinates the sampling and sequencing but otherwise tries to add as little as possible.
+This module implements a simple benchmark tool. It performs synchronous or asynchronous tests and allows for either manual or built-in timing. It computes the online mean and variance and returns some simple statistics. The goal is not a full-featured benchmark library; rather it's to reduce boilerplate while keeping things simple and transparent.
 
 ## Installation
 
