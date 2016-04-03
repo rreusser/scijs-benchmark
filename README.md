@@ -12,6 +12,12 @@ This module implements a simple benchmark tool. It performs synchronous or async
 npm install scijs-benchmark
 ```
 
+**This module is not yet published to npm. To use in the interim, add to package.json:**
+
+```json
+"scijs-benchmark": "git@github.com:rreusser/scijs-benchmark.git"
+```
+
 ```javascript
 var Benchmark = require('scijs-benchmark')
 ```
